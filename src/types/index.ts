@@ -57,6 +57,7 @@ export interface AppState {
   selectedRequestId: string | null
   selectedVehicleId: string | null
   expandedRequestId: string | null
+  recentlyDeliveredIds: string[]
   theme: 'dark' | 'light'
   broadcastDraft: string
   broadcastType: BroadcastType
@@ -78,3 +79,5 @@ export type AppAction =
   | { type: 'BROADCAST_TYPE_CHANGED'; payload: BroadcastType }
   | { type: 'BROADCAST_SENT'; payload: BroadcastMessage }
   | { type: 'SET_CONNECTION_STATUS'; payload: 'connected' | 'connecting' | 'disconnected' }
+  | { type: 'REQUESTS_DELIVERED'; payload: string[] }
+  | { type: 'CLEAR_RECENTLY_DELIVERED'; payload: string[] }

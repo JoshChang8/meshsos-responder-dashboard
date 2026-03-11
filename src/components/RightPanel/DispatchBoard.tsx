@@ -233,16 +233,6 @@ export default function DispatchBoard() {
                   ↩ Recall
                 </button>
               )}
-              {vehicle.status === 'available' && !isSelected && (
-                <div className="flex-1 py-1.5 text-center text-[10px] text-text-muted">
-                  Click to select
-                </div>
-              )}
-              {vehicle.status === 'available' && isSelected && vehicle.assignedRequestIds.length === 0 && (
-                <div className="flex-1 py-1.5 text-center text-[10px] text-text-muted">
-                  Load requests above ↑
-                </div>
-              )}
               {vehicle.status === 'returning' && (
                 <button
                   onClick={() => dispatch({ type: 'VEHICLE_UPDATED', payload: { ...vehicle, status: 'available', assignedRequestIds: [] } })}

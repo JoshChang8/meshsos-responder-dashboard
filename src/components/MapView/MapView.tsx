@@ -7,13 +7,13 @@ import { HouseholdRequest } from '../../types'
 import NodeMarker from './NodeMarker'
 import VehicleMarker from './VehicleMarker'
 
-// Civilian-app status colors, theme-aware
+// Civilian-app status colors, theme-aware — new + acknowledged both yellow (unassigned)
 function statusColors(theme: 'dark' | 'light'): Record<HouseholdRequest['status'], string> {
   return {
-    new: '#f85149',
+    new:          '#d29922',
     acknowledged: '#d29922',
-    dispatched: theme === 'dark' ? '#60a5fa' : '#1d4ed8',
-    delivered: theme === 'dark' ? '#3fb950' : '#16a34a',
+    dispatched:   theme === 'dark' ? '#60a5fa' : '#1d4ed8',
+    delivered:    theme === 'dark' ? '#3fb950' : '#16a34a',
   }
 }
 
@@ -69,12 +69,12 @@ function ClusteredRequestPins() {
       maxClusterRadius: 60,
       iconCreateFunction: clusterGroup => {
         const count = clusterGroup.getChildCount()
-        const hasNew = clusterGroup.getAllChildMarkers().some(m => {
+        const hasUnassigned = clusterGroup.getAllChildMarkers().some(m => {
           const req = (m as L.Marker & { _req?: HouseholdRequest })._req
-          return req?.status === 'new'
+          return req?.status === 'new' || req?.status === 'acknowledged'
         })
-        const color = hasNew ? '#f85149' : accentColor
-        const bg = hasNew ? 'rgba(248,81,73,0.15)' : accentDim
+        const color = hasUnassigned ? '#d29922' : accentColor
+        const bg = hasUnassigned ? 'rgba(210,153,34,0.15)' : accentDim
         return L.divIcon({
           html: `<div style="width:36px;height:36px;border-radius:50%;background:${bg};border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:${color};font-family:'DM Mono',monospace;box-shadow:0 0 12px ${bg};">${count}</div>`,
           className: '',
@@ -84,7 +84,9 @@ function ClusteredRequestPins() {
       },
     })
 
-    state.requests.forEach(req => {
+    state.requests
+      .filter(r => r.status !== 'delivered' || state.recentlyDeliveredIds.includes(r.id))
+      .forEach(req => {
       const color = COLORS[req.status]
       const highlight = state.selectedRequestId === req.id || state.expandedRequestId === req.id
       const size = highlight ? 28 : 22
@@ -118,7 +120,7 @@ function ClusteredRequestPins() {
 
     map.addLayer(cluster)
     return () => { map.removeLayer(cluster) }
-  }, [state.requests, state.selectedRequestId, state.expandedRequestId, state.theme, map, dispatch])
+  }, [state.requests, state.selectedRequestId, state.expandedRequestId, state.recentlyDeliveredIds, state.theme, map, dispatch])
 
   return null
 }
@@ -204,10 +206,8 @@ export default function MapView() {
       >
         <div className="text-[8.5px] font-bold uppercase tracking-[1px] text-text-muted mb-1.5">Request Status</div>
         {[
-          { color: COLORS.new, label: 'New' },
-          { color: COLORS.acknowledged, label: 'Acknowledged' },
+          { color: COLORS.new,        label: 'Unassigned' },
           { color: COLORS.dispatched, label: 'Dispatched' },
-          { color: COLORS.delivered, label: 'Delivered' },
         ].map(item => (
           <div key={item.label} className="flex items-center gap-1.5 text-[10px] text-text-dim mb-0.5">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: item.color }} />

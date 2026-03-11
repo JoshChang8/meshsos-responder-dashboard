@@ -7,6 +7,7 @@ export const initialState: AppState = {
   selectedRequestId: null,
   selectedVehicleId: null,
   expandedRequestId: null,
+  recentlyDeliveredIds: [],
   theme: 'dark',
   broadcastDraft: '',
   broadcastType: 'urgent',
@@ -86,6 +87,21 @@ export function reducer(state: AppState, action: AppAction): AppState {
 
     case 'SET_CONNECTION_STATUS':
       return { ...state, connectionStatus: action.payload }
+
+    case 'REQUESTS_DELIVERED':
+      return {
+        ...state,
+        requests: state.requests.map(r =>
+          action.payload.includes(r.id) ? { ...r, status: 'delivered' } : r
+        ),
+        recentlyDeliveredIds: [...state.recentlyDeliveredIds, ...action.payload],
+      }
+
+    case 'CLEAR_RECENTLY_DELIVERED':
+      return {
+        ...state,
+        recentlyDeliveredIds: state.recentlyDeliveredIds.filter(id => !action.payload.includes(id)),
+      }
 
     default:
       return state

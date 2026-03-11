@@ -1,5 +1,5 @@
 import './utils/leafletIconFix'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { DashboardProvider, useDashboard } from './context/DashboardContext'
 import { useGatewaySocket } from './hooks/useGatewaySocket'
 import { startMockGateway } from './mocks/gatewayMock'
@@ -31,6 +31,34 @@ function AppInner() {
   useEffect(() => {
     if (USE_MOCK) return startMockGateway(dispatch)
   }, [dispatch])
+
+  // Mock auto-delivery: when a vehicle goes en route, simulate delivery after travel time
+  const deliveryTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  useEffect(() => {
+    if (!USE_MOCK) return
+    state.vehicles.forEach(vehicle => {
+      const hasTimer = deliveryTimers.current.has(vehicle.id)
+      if (vehicle.status === 'enroute' && vehicle.assignedRequestIds.length > 0 && !hasTimer) {
+        // Capture values for the closure
+        const reqIds = [...vehicle.assignedRequestIds]
+        const vehicleSnapshot = { ...vehicle }
+        // Simulated travel time: ~12 seconds for demo
+        const timer = setTimeout(() => {
+          dispatch({ type: 'REQUESTS_DELIVERED', payload: reqIds })
+          dispatch({ type: 'VEHICLE_UPDATED', payload: { ...vehicleSnapshot, status: 'returning', assignedRequestIds: [] } })
+          deliveryTimers.current.delete(vehicle.id)
+          setTimeout(() => {
+            dispatch({ type: 'CLEAR_RECENTLY_DELIVERED', payload: reqIds })
+          }, 10_000)
+        }, 12_000)
+        deliveryTimers.current.set(vehicle.id, timer)
+      } else if (vehicle.status !== 'enroute' && hasTimer) {
+        // Vehicle was recalled before delivery — cancel the timer
+        clearTimeout(deliveryTimers.current.get(vehicle.id)!)
+        deliveryTimers.current.delete(vehicle.id)
+      }
+    })
+  }, [state.vehicles, dispatch])
 
   // Escape deselects current request
   useEffect(() => {

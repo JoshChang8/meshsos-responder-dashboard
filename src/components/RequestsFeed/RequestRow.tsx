@@ -1,34 +1,21 @@
 import React from 'react'
-import { HouseholdRequest, RequestStatus } from '../../types'
+import { HouseholdRequest } from '../../types'
 import { relativeTime } from '../../utils/time'
 import { useDashboard } from '../../context/DashboardContext'
 
-// CSS-variable driven status colors — auto-switch with theme
+// new + acknowledged → same yellow "unassigned" treatment
 const STATUS_COLOR: Record<HouseholdRequest['status'], string> = {
-  new: 'var(--color-red)',
+  new:          'var(--color-yellow)',
   acknowledged: 'var(--color-yellow)',
-  dispatched: 'var(--color-blue)',
-  delivered: 'var(--color-green)',
+  dispatched:   'var(--color-blue)',
+  delivered:    'var(--color-green)',
 }
 
 const STATUS_COLOR_DIM: Record<HouseholdRequest['status'], string> = {
-  new: 'var(--color-red-dim)',
+  new:          'var(--color-yellow-dim)',
   acknowledged: 'var(--color-yellow-dim)',
-  dispatched: 'var(--color-blue-dim)',
-  delivered: 'var(--color-green-dim)',
-}
-
-const STATUS_LABEL: Record<HouseholdRequest['status'], string> = {
-  new: 'New',
-  acknowledged: 'Acknowledged',
-  dispatched: 'Dispatched',
-  delivered: 'Delivered',
-}
-
-const STATUS_NEXT: Partial<Record<RequestStatus, { label: string; next: RequestStatus }>> = {
-  new: { label: '✓ Acknowledge', next: 'acknowledged' },
-  acknowledged: { label: '🚐 Dispatch', next: 'dispatched' },
-  dispatched: { label: '✓ Mark Delivered', next: 'delivered' },
+  dispatched:   'var(--color-blue-dim)',
+  delivered:    'var(--color-green-dim)',
 }
 
 // Supply chips — civilian app emojis + semantic CSS-variable colors
@@ -58,8 +45,6 @@ export default function RequestRow({ request, isSelected, isExpanded, onToggleEx
   const statusColorDim = STATUS_COLOR_DIM[request.status]
   const hasMedical = request.supplies.includes('medical') || request.medicalProfiles.length > 0
   const totalPeople = request.people.infant + request.people.childAdult + request.people.senior
-  const nextAction = STATUS_NEXT[request.status]
-
   // Loading mode: a vehicle is selected and available to load
   const selectedVehicle = state.selectedVehicleId
     ? state.vehicles.find(v => v.id === state.selectedVehicleId)
@@ -67,10 +52,6 @@ export default function RequestRow({ request, isSelected, isExpanded, onToggleEx
   const loadingModeActive = !!(selectedVehicle && (selectedVehicle.status === 'available' || selectedVehicle.status === 'loading'))
   const alreadyOnSelected = selectedVehicle?.assignedRequestIds.includes(request.id) ?? false
   const assignedVehicle = state.vehicles.find(v => v.assignedRequestIds.includes(request.id))
-
-  function setStatus(status: RequestStatus) {
-    dispatch({ type: 'REQUEST_STATUS_UPDATED', payload: { id: request.id, status } })
-  }
 
   function loadToVehicle(e: React.MouseEvent) {
     e.stopPropagation()
@@ -145,15 +126,15 @@ export default function RequestRow({ request, isSelected, isExpanded, onToggleEx
           <span className="text-[11px] text-text-muted font-mono ml-auto">{request.nodeId}</span>
         </div>
 
-        {/* Row 4: status badge + vehicle tag */}
-        {(request.status !== 'new' || assignedVehicle) && (
+        {/* Row 4: dispatched/delivered badge + vehicle tag */}
+        {(request.status === 'dispatched' || request.status === 'delivered' || assignedVehicle) && (
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-            {request.status !== 'new' && (
+            {(request.status === 'dispatched' || request.status === 'delivered') && (
               <span
                 className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full border"
                 style={{ background: statusColorDim, borderColor: `${statusColor}40`, color: statusColor }}
               >
-                {STATUS_LABEL[request.status]}
+                {request.status === 'dispatched' ? 'Dispatched' : 'Delivered'}
               </span>
             )}
             {assignedVehicle && (
@@ -223,23 +204,27 @@ export default function RequestRow({ request, isSelected, isExpanded, onToggleEx
             </div>
           )}
 
-          {/* Notes */}
+          {/* Notes / Other request details */}
           {request.notes && (
-            <div className="text-[11px] text-text-dim italic leading-relaxed border-l-2 border-border pl-2">
-              {request.notes}
+            <div className="flex flex-col gap-1">
+              {request.supplies.includes('other') && (
+                <div className="text-[9px] font-bold uppercase tracking-[1.2px]" style={{ color: 'var(--color-text-muted)' }}>
+                  ✏️ Other Details
+                </div>
+              )}
+              <div
+                className="text-[11px] leading-relaxed border-l-2 pl-2"
+                style={{
+                  borderColor: request.supplies.includes('other') ? 'var(--color-yellow)' : 'var(--color-border)',
+                  color: request.supplies.includes('other') ? 'var(--color-text-dim)' : 'var(--color-text-muted)',
+                  fontStyle: request.supplies.includes('other') ? 'normal' : 'italic',
+                }}
+              >
+                {request.notes}
+              </div>
             </div>
           )}
 
-          {/* Quick action button */}
-          {nextAction && (
-            <button
-              onClick={e => { e.stopPropagation(); setStatus(nextAction.next) }}
-              className="mt-0.5 w-full py-1.5 rounded-[10px] text-[12px] font-semibold border transition-colors"
-              style={{ background: statusColorDim, borderColor: `${statusColor}40`, color: statusColor }}
-            >
-              {nextAction.label}
-            </button>
-          )}
         </div>
       )}
     </div>

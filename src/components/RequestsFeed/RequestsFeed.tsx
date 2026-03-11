@@ -24,14 +24,14 @@ export default function RequestsFeed() {
   const counts = useMemo<Record<FeedTab, number>>(() => ({
     recent: active.length,
     medical: active.filter(r => r.supplies.includes('medical') || r.medicalProfiles.length > 0).length,
-    other: active.filter(r => !r.supplies.includes('medical') && r.medicalProfiles.length === 0).length,
+    other: active.filter(r => r.supplies.includes('other')).length,
   }), [active])
 
   const filtered = useMemo(() => {
     return active
       .filter(r => {
         if (tab === 'medical') return r.supplies.includes('medical') || r.medicalProfiles.length > 0
-        if (tab === 'other') return !r.supplies.includes('medical') && r.medicalProfiles.length === 0
+        if (tab === 'other') return r.supplies.includes('other')
         return true
       })
       .sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime())
